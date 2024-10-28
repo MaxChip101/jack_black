@@ -365,7 +365,10 @@ void game(std::vector<Card> &deck)
 
 int main()
 {
+    #ifdef _WIN32
     system("chcp 65001"); // sets console to UTF-8
+    #endif
+
     srand(time(NULL));
     std::vector<Card> deck = createDeck();
     logic_deck = deck;
