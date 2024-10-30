@@ -212,8 +212,9 @@ void render_card(Card card)
 }
 
 std::vector<Card> logic_deck;
-
+std::vector<Card> logic_deck2;
 std::vector<Card> opponent_deck;
+std::vector<Card> dealer_deck;
 std::vector<Card> player_deck;
 
 int ace_value(Card card)
@@ -235,10 +236,29 @@ void add_opponent_card(std::vector<Card> &deck)
     
     if(drawn.name == "Ace")
     {
-        drawn.value = ai::set_ace_value();
+        drawn.value = ai2::set_ace_value();
     }
 
     opponent_deck.push_back(drawn);
+
+    auto pos = std::find(logic_deck2.begin(), logic_deck2.end(), drawn);
+    if (pos != logic_deck2.end())
+    {
+        logic_deck2.erase(pos);
+    }
+    
+}
+
+void add_dealer_card(std::vector<Card> &deck)
+{
+    Card drawn = draw(deck);
+    
+    if(drawn.name == "Ace")
+    {
+        drawn.value = ai::set_ace_value();
+    }
+
+    dealer_deck.push_back(drawn);
 
     auto pos = std::find(logic_deck.begin(), logic_deck.end(), drawn);
     if (pos != logic_deck.end())
@@ -270,6 +290,9 @@ void game(std::vector<Card> &deck)
 {
     bool on = true;
 
+    add_dealer_card(deck);
+    add_dealer_card(deck);
+
     player_deck.push_back(draw(deck));
     player_deck.push_back(draw(deck));
 
@@ -277,7 +300,10 @@ void game(std::vector<Card> &deck)
     add_opponent_card(deck);
 
     ai::update_biases(logic_deck);
-    ai::update_deck(opponent_deck);
+    ai::update_deck(dealer_deck);
+
+    ai2::update_biases(logic_deck2);
+    ai2::update_deck(opponent_deck);
 
     show_player_deck();
 
@@ -294,10 +320,25 @@ void game(std::vector<Card> &deck)
         else
         {
             Card drawn = draw(deck);
+
             if (drawn.name != "Empty")
             {
-                player_deck.push_back(drawn);
-                show_player_deck();
+                int points = 0;
+                for(size_t i = 0; i < player_deck.size(); i++)
+                {
+                    points += player_deck[i].value;
+                }
+                if(points <= 21)
+                {
+                    player_deck.push_back(drawn);
+                    show_player_deck();
+                }
+                else
+
+                {
+                    std::cout << RED << "You Busted" << RESET << std::endl;
+                    on = false;
+                }
             }
             else
             {
@@ -316,14 +357,42 @@ void game(std::vector<Card> &deck)
         
         if(choice == true)
         {
-            add_opponent_card(deck);
-            ai::update_deck(opponent_deck);
+            add_dealer_card(deck);
+            ai::update_deck(dealer_deck);
             ai::update_biases(logic_deck);
         }
         else
         {
             on = false;
         }
+    }
+
+    on = true;
+
+    while(on && !empty_deck)
+    {
+        bool choice = ai2::decide();
+        
+        if(choice == true)
+        {
+            add_opponent_card(deck);
+            ai2::update_deck(opponent_deck);
+            ai2::update_biases(logic_deck2);
+        }
+        else
+        {
+            on = false;
+        }
+    }
+
+    int dealer_points = 0;
+
+    std::cout << "--------------------------------------------------\nDealer Cards:" << std::endl;
+
+    for(size_t i = 0; i < dealer_deck.size(); i++)
+    {
+        dealer_points += dealer_deck[i].value;
+        render_card(dealer_deck[i]);
     }
 
     int opponent_points = 0;
@@ -344,21 +413,79 @@ void game(std::vector<Card> &deck)
         player_points += player_deck[i].value;
     }
 
-    if((player_points <= 21 && player_points > opponent_points && opponent_points <= 21) || (opponent_points > 21 && player_points <= 21))
+    int winner = 0;
+
+    // checking for the winner with math::max() and if below 21
+    if(player_points <= 21 && opponent_points <= 21 && dealer_points <= 21) // everybody below 21
     {
-        std::cout << "You Win!" << std::endl;
+        winner = std::max(player_points, std::max(opponent_points, dealer_points));
     }
-    else if((player_points > 21 && opponent_points <= 21) || (opponent_points <= 21 && opponent_points > player_points && player_points <= 21))
+    else if(player_points <= 21 && opponent_points <= 21) // player and opponent below 21
     {
-        std::cout << "You Lose" << std::endl;
+        winner = std::max(player_points,opponent_points);
     }
-    else
+    else if(player_points <= 21 && dealer_points <= 21) // player and dealer below 21
+    {
+        winner = std::max(player_points, dealer_points);
+    }
+    else if(dealer_points <= 21 && opponent_points <= 21) // opponent and dealer below 21
+    {
+        winner = std::max(opponent_points, dealer_points);
+    }
+    else if(dealer_points <= 21) // only dealer below 21
+    {
+        winner = dealer_points;
+    }
+    else if(player_points <= 21) // only player below 21
+    {
+        winner = player_points;
+    }
+    else if(opponent_points <= 21) // only opponent below 21
+    {
+        winner = opponent_points;
+    }
+
+
+    bool all_busts = true;
+
+    if(player_points <= 21 || opponent_points <= 21 || dealer_points <= 21) // if one person is below 21 then turn off the all busts boolean
+    {
+        all_busts = false;
+    }
+
+    int tieCount = 0;
+    if ((player_points == winner || opponent_points == winner || dealer_points == winner) && !all_busts) // checks for ties
+    {
+        tieCount++;
+    }
+
+    // check the game for the endings
+    if(all_busts) // everyone busted
+    {
+        std::cout << "Nobody Won" << std::endl;
+    }
+    else if(tieCount == 3) // ties
     {
         std::cout << "Tie" << std::endl;
     }
+    else if(winner == player_points && player_points <= 21 && !all_busts) // player wins
+    {
+        std::cout << "You Win!" << std::endl;
+    }
+    else if(winner == opponent_points && opponent_points <= 21 && !all_busts) // opponent wins
+    {
+        std::cout << "Opponent Wins, you lose" << std::endl;
+    }
+    else if(winner == dealer_points && dealer_points <= 21) // dealer wins
+    {
+        std::cout << "Dealer Wins, you lose" << std::endl;
+    }
+    else // if all else then unkown
+    {
+        std::cout << "Unkown" << std::endl;
+    }
 
-
-    std::cout << "player: " << player_points << ", opponent: " << opponent_points << std::endl;
+    std::cout << "player: " << player_points << ", opponent: " << opponent_points << ", dealer: " << dealer_points << std::endl;
     std::cout << "Press Enter to escape";
     input();
 }
@@ -366,7 +493,7 @@ void game(std::vector<Card> &deck)
 int main()
 {
     #ifdef _WIN32
-    system("chcp 65001"); // sets console to UTF-8
+    system("chcp 65001"); // sets console to UTF-8 if on windows
     #endif
 
     srand(time(NULL));
