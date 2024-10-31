@@ -323,18 +323,15 @@ void game(std::vector<Card> &deck)
 
             if (drawn.name != "Empty")
             {
+                player_deck.push_back(drawn);
+                show_player_deck();    
+                
                 int points = 0;
                 for(size_t i = 0; i < player_deck.size(); i++)
                 {
                     points += player_deck[i].value;
                 }
-                if(points <= 21)
-                {
-                    player_deck.push_back(drawn);
-                    show_player_deck();
-                }
-                else
-
+                if(points >= 21)
                 {
                     std::cout << RED << "You Busted" << RESET << std::endl;
                     on = false;
