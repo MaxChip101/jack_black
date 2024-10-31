@@ -461,9 +461,9 @@ void game(std::vector<Card> &deck)
     {
         std::cout << "Nobody Won" << std::endl;
     }
-    else if(tieCount == 3) // ties
+    else if(tieCount == 2) // ties
     {
-        std::cout << "Tie" << std::endl;
+        std::cout << "2 or more players tied" << std::endl;
     }
     else if(winner == player_points && player_points <= 21 && !all_busts) // player wins
     {
