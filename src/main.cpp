@@ -331,7 +331,7 @@ void game(std::vector<Card> &deck)
                 {
                     points += player_deck[i].value;
                 }
-                if(points >= 21)
+                if(points > 21)
                 {
                     std::cout << RED << "You Busted" << RESET << std::endl;
                     on = false;
