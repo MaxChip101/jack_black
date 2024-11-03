@@ -9,7 +9,8 @@ struct Card
     std::string type;
     int value;
 
-    bool operator==(const Card &other) const {
+    bool operator==(const Card &other) const
+    {
         return value == other.value;
     }
 
